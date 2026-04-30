@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ferox Times — Video Post Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+  <!-- PWA Support -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1a365d">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FT Editor">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0a0f;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+
+  header { text-align: center; margin-bottom: 20px; }
+  header h1 {
+    font-size: 2rem; font-weight: 900; letter-spacing: 2px;
+    background: linear-gradient(135deg, #1a365d, #2b6cb0);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  .main-layout {
+    display: flex; gap: 30px; align-items: flex-start;
+    width: 100%; max-width: 1400px; justify-content: center;
+  }
+
+  /* ── LEFT PANEL: CONTROLS & TIMELINE ── */
+  .controls-panel {
+    background: #13131a; border: 1px solid #222; border-radius: 16px;
+    padding: 20px; width: 420px; flex-shrink: 0;
+    max-height: 85vh; overflow-y: auto;
+  }
+  .controls-panel::-webkit-scrollbar { width: 6px; }
+  .controls-panel::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+  h2 { font-size: 1rem; color: #1a365d; margin-bottom: 15px; text-transform: uppercase; }
+
+  .field { margin-bottom: 15px; }
+  .field label { display: block; font-size: 0.8rem; color: #888; margin-bottom: 6px; }
+  .field input[type="text"], .field input[type="number"], .field textarea {
+    width: 100%; background: #0a0a0f; border: 1px solid #2a2a3a; border-radius: 8px;
+    padding: 10px; color: #fff; font-family: 'Inter'; outline: none;
+  }
+  .field input[type="color"] { width: 100%; height: 40px; border: 1px solid #2a2a3a; border-radius: 8px; background: #0a0a0f; }
+
+  .upload-btn {
+    display: flex; align-items: center; justify-content: center; padding: 12px;
+    background: #1a1a2e; border: 2px dashed #333; border-radius: 10px; cursor: pointer; color: #aaa;
+  }
+  .upload-btn:hover { border-color: #1a365d; color: #1a365d; }
+
+  /* Format Tabs */
+  .format-tabs { display: flex; gap: 6px; margin-bottom: 15px; }
+  .format-tab {
+    flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #2a2a3a;
+    background: #0a0a0f; color: #888; cursor: pointer; font-size: 0.8rem; text-align: center;
+  }
+  .format-tab.active { background: #1a365d; border-color: #1a365d; color: #fff; }
+
+  /* Clips Manager */
+  .clip-box {
+    background: #1a1a24; border: 1px solid #333; border-radius: 10px;
+    padding: 15px; margin-bottom: 15px; position: relative;
+  }
+  .clip-box.active { border-color: #1a365d; }
+  .clip-times { display: flex; gap: 10px; margin-bottom: 10px; }
+  .clip-times input { flex: 1; }
+  .remove-clip {
+    position: absolute; top: 10px; right: 10px; background: #1a365d; color: white;
+    border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.7rem;
+  }
+  .add-clip-btn {
+    width: 100%; padding: 10px; background: #222; border: 1px dashed #555;
+    color: #fff; border-radius: 8px; cursor: pointer; margin-bottom: 20px;
+  }
+
+  /* ── RIGHT PANEL: PREVIEW & PLAYER ── */
+  .preview-panel { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+  #previewCanvas { border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); max-width: 100%; }
+
+  .player-controls {
+    display: flex; align-items: center; gap: 15px; width: 100%; max-width: 540px;
+    background: #13131a; padding: 15px; border-radius: 12px; border: 1px solid #222;
+  }
+  .play-btn {
+    background: #1a365d; border: none; color: white; width: 40px; height: 40px;
+    border-radius: 50%; cursor: pointer; font-weight: bold; font-size: 1.2rem;
+  }
+  .timeline { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+  .timeline input[type="range"] { width: 100%; accent-color: #1a365d; }
+  .time-display { font-size: 0.8rem; color: #aaa; text-align: right; }
+
+  /* Export Button */
+  .btn-primary {
+    width: 100%; padding: 14px; background: linear-gradient(135deg, #1a365d, #0f223a);
+    border: none; border-radius: 10px; color: white; font-weight: 700; cursor: pointer;
+    font-size: 1rem; margin-top: 10px; transition: transform 0.2s;
+  }
+  .btn-primary:hover { transform: translateY(-2px); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .export-progress { display: none; margin-top: 10px; text-align: center; color: #1a365d; font-weight: bold; }
+
+  /* ── MOBILE RESPONSIVE ── */
+  @media (max-width: 900px) {
+    body { padding: 12px; }
+    header h1 { font-size: 1.4rem; }
+    .main-layout { flex-direction: column; align-items: center; gap: 16px; }
+    .controls-panel { width: 100%; max-width: 100%; max-height: none; }
+    .preview-panel { width: 100%; }
+    #previewCanvas { width: 100% !important; height: auto !important; }
+    .format-tabs { flex-wrap: wrap; }
+    .format-tab { font-size: 0.75rem; padding: 6px; }
+    .player-controls { max-width: 100%; }
+  }
+
+</style>
+</head>
+<body>
+
+<header>
+  <h1>FT VIDEO EDITOR</h1>
+  <p>Ferox Times — Timeline-Based Social Post Generator</p>
+</header>
+
+<div class="main-layout">
+
+  <!-- LEFT: CONTROLS & TIMELINE -->
+  <div class="controls-panel">
+    <h2>1. Setup</h2>
+    
+    <div class="format-tabs">
+      <button class="format-tab active" onclick="setSize(this,1080,1080)">Square (1:1)</button>
+      <button class="format-tab" onclick="setSize(this,1080,1920)">Story (9:16)</button>
+      <button class="format-tab" onclick="setSize(this,1200,628)">Banner</button>
+    </div>
+
+    <div class="field">
+      <label class="upload-btn" for="mediaInput">🎬 Upload Video / Image</label>
+      <input type="file" id="mediaInput" accept="video/*,image/*" style="display:none" onchange="loadMedia(event)">
+    </div>
+
+    <div class="field">
+      <label>Website URL</label>
+      <input type="text" id="website" value="FEROXTIMES.COM" oninput="drawFrame()">
+    </div>
+
+    <h2 id="timelineHeader">2. Timeline Overlays</h2>
+    <div id="clipsContainer"></div>
+    <button class="add-clip-btn" id="addClipBtn" onclick="addClip()">+ Add Text Clip</button>
+
+    <button class="btn-primary" id="exportBtn" onclick="startExport()" style="display:none;">⬇ Export HD Video</button>
+    <button class="btn-primary" id="downloadImgBtn" onclick="downloadImage()">📷 Download Image</button>
+    <div class="export-progress" id="exportStatus">Exporting... Please wait</div>
+  </div>
+
+  <!-- RIGHT: PREVIEW -->
+  <div class="preview-panel">
+    <canvas id="previewCanvas"></canvas>
+    
+    <div class="player-controls" id="playerControls" style="display:none;">
+      <button class="play-btn" id="playBtn" onclick="togglePlay()">▶</button>
+      <div class="timeline">
+        <input type="range" id="seekSlider" value="0" min="0" max="100" step="0.1" oninput="seekVideo()">
+        <div class="time-display" id="timeDisplay">0.0s / 0.0s</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── STATE ──
+let canvasW = 1080, canvasH = 1080;
+const DISPLAY_MAX = 540;
+
+const canvas = document.getElementById('previewCanvas');
+const ctx = canvas.getContext('2d');
+
+let mediaType = null; // 'video' or 'image'
+let mediaElement = null; // HTMLVideoElement or HTMLImageElement
+let isPlaying = false;
+let animationFrameId = null;
+let isExporting = false;
+let mediaRecorder = null;
+let recordedChunks = [];
+
+// Timeline State
+let clips = [
+  { id: Date.now(), start: 0, end: 10, tag: 'FIELD REPORTS', color: '#1a365d', headline: 'Northeast Elections 2026: Assam Votes', desc: 'Voting starts across 126 seats in Assam.' }
+];
+
+function setSize(btn, w, h) {
+  document.querySelectorAll('.format-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  canvasW = w; canvasH = h;
+  drawFrame();
+}
+
+// ── MEDIA LOADING ──
+function loadMedia(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (mediaElement && mediaType === 'video') {
+    mediaElement.pause();
+    mediaElement.src = "";
+  }
+
+  const url = URL.createObjectURL(file);
+  if (file.type.startsWith('video/')) {
+    mediaType = 'video';
+    mediaElement = document.createElement('video');
+    mediaElement.src = url;
+    mediaElement.muted = false;
+    mediaElement.crossOrigin = "anonymous";
+    mediaElement.onloadedmetadata = () => {
+      document.getElementById('seekSlider').max = mediaElement.duration;
+      document.getElementById('timeDisplay').innerText = `0.0s / ${mediaElement.duration.toFixed(1)}s`;
+      drawFrame();
+    };
+    mediaElement.ontimeupdate = updatePlayerUI;
+    mediaElement.onended = () => { if(!isExporting) { isPlaying = false; document.getElementById('playBtn').innerText = '▶'; } };
+    updateUIMode('video');
+  } else {
+    mediaType = 'image';
+    mediaElement = new Image();
+    mediaElement.onload = () => {
+      document.getElementById('seekSlider').max = 10; // fake duration for image
+      document.getElementById('timeDisplay').innerText = `0.0s / 10.0s`;
+      drawFrame();
+    };
+    mediaElement.src = url;
+    updateUIMode('image');
+  }
+}
+
+function updateUIMode(mode) {
+  const isVideo = mode === 'video';
+  document.getElementById('playerControls').style.display = isVideo ? 'flex' : 'none';
+  document.getElementById('exportBtn').style.display = isVideo ? 'block' : 'none';
+  document.getElementById('addClipBtn').style.display = isVideo ? 'block' : 'none';
+  document.getElementById('timelineHeader').innerText = isVideo ? '2. Timeline Overlays' : '2. Text Overlays';
+  
+  // Style Image Download button differently based on mode
+  const imgBtn = document.getElementById('downloadImgBtn');
+  if (isVideo) {
+    imgBtn.innerText = '📷 Download Current Frame';
+    imgBtn.style.marginTop = '5px';
+    imgBtn.style.background = '#333';
+  } else {
+    imgBtn.innerText = '⬇ Download Image Post';
+    imgBtn.style.marginTop = '10px';
+    imgBtn.style.background = 'linear-gradient(135deg, #1a365d, #0f223a)';
+  }
+
+  // Ensure at least one clip exists for image mode
+  if (!isVideo && clips.length === 0) {
+    addClip();
+  }
+  
+  renderClipsUI();
+}
+
+// ── PLAYER CONTROLS ──
+function togglePlay() {
+  if (mediaType !== 'video') return;
+  const btn = document.getElementById('playBtn');
+  if (isPlaying) {
+    mediaElement.pause();
+    isPlaying = false;
+    btn.innerText = '▶';
+    cancelAnimationFrame(animationFrameId);
+  } else {
+    mediaElement.play();
+    isPlaying = true;
+    btn.innerText = '⏸';
+    renderLoop();
+  }
+}
+
+function seekVideo() {
+  if (mediaType !== 'video') {
+    drawFrame();
+    return;
+  }
+  const time = parseFloat(document.getElementById('seekSlider').value);
+  mediaElement.currentTime = time;
+  drawFrame();
+}
+
+function updatePlayerUI() {
+  if (isExporting) return; // UI updates can lag export
+  const time = mediaType === 'video' ? mediaElement.currentTime : parseFloat(document.getElementById('seekSlider').value);
+  const dur = mediaType === 'video' ? mediaElement.duration : 10;
+  document.getElementById('seekSlider').value = time;
+  document.getElementById('timeDisplay').innerText = `${time.toFixed(1)}s / ${(dur||0).toFixed(1)}s`;
+  highlightActiveClip(time);
+}
+
+// ── CLIPS MANAGER ──
+function renderClipsUI() {
+  const container = document.getElementById('clipsContainer');
+  container.innerHTML = '';
+  clips.sort((a,b) => a.start - b.start).forEach((clip, index) => {
+    // Hide start/end times if it's just an image
+    const timesHtml = mediaType !== 'video' ? '' : `
+      <div class="clip-times">
+        <div class="field" style="margin-bottom:0"><label>Start (s)</label><input type="number" step="0.1" value="${clip.start}" onchange="updateClip(${clip.id}, 'start', this.value)"></div>
+        <div class="field" style="margin-bottom:0"><label>End (s)</label><input type="number" step="0.1" value="${clip.end}" onchange="updateClip(${clip.id}, 'end', this.value)"></div>
+      </div>
+    `;
+    const removeBtn = mediaType !== 'video' && clips.length === 1 ? '' : `<button class="remove-clip" onclick="removeClip(${clip.id})">X</button>`;
+
+    container.innerHTML += `
+      <div class="clip-box" id="clipBox_${clip.id}">
+        ${removeBtn}
+        ${timesHtml}
+        <div class="clip-times">
+          <div class="field" style="margin-bottom:0; flex:2"><label>Tag</label><input type="text" value="${clip.tag}" onchange="updateClip(${clip.id}, 'tag', this.value)"></div>
+          <div class="field" style="margin-bottom:0; flex:1"><label>Color</label><input type="color" value="${clip.color}" onchange="updateClip(${clip.id}, 'color', this.value)"></div>
+        </div>
+        <div class="field" style="margin-top:10px"><label>Headline</label><textarea rows="2" onchange="updateClip(${clip.id}, 'headline', this.value)">${clip.headline}</textarea></div>
+        <div class="field"><label>Description</label><textarea rows="1" onchange="updateClip(${clip.id}, 'desc', this.value)">${clip.desc}</textarea></div>
+      </div>
+    `;
+  });
+}
+
+function addClip() {
+  const lastEnd = clips.length > 0 ? Math.max(...clips.map(c => c.end)) : 0;
+  clips.push({
+    id: Date.now(), start: lastEnd, end: lastEnd + 5,
+    tag: 'NEW CLIP', color: '#1565c0', headline: 'New Headline', desc: 'Description here.'
+  });
+  renderClipsUI();
+  drawFrame();
+}
+
+function removeClip(id) { clips = clips.filter(c => c.id !== id); renderClipsUI(); drawFrame(); }
+function updateClip(id, field, val) { 
+  const clip = clips.find(c => c.id === id);
+  if(clip) clip[field] = field === 'start' || field === 'end' ? parseFloat(val) : val;
+  drawFrame();
+}
+
+function getActiveClip(time) { 
+  if (mediaType !== 'video' && clips.length > 0) return clips[0];
+  return clips.find(c => time >= c.start && time <= c.end); 
+}
+
+function highlightActiveClip(time) {
+  clips.forEach(c => {
+    const el = document.getElementById(`clipBox_${c.id}`);
+    if (el) {
+      if (time >= c.start && time <= c.end) el.classList.add('active');
+      else el.classList.remove('active');
+    }
+  });
+}
+
+// ── RENDERING ──
+function renderLoop() {
+  if (isPlaying || isExporting) {
+    drawFrame();
+    if(mediaType === 'video') updatePlayerUI();
+    animationFrameId = requestAnimationFrame(renderLoop);
+  }
+}
+
+function drawFrame() {
+  const scale = Math.min(DISPLAY_MAX / canvasW, DISPLAY_MAX / canvasH);
+  canvas.width  = canvasW;
+  canvas.height = canvasH;
+  canvas.style.width  = (canvasW * scale) + 'px';
+  canvas.style.height = (canvasH * scale) + 'px';
+
+  ctx.clearRect(0, 0, canvasW, canvasH);
+
+  // Background Media
+  if (mediaElement) {
+    const mediaW = mediaElement.videoWidth || mediaElement.width;
+    const mediaH = mediaElement.videoHeight || mediaElement.height;
+    if(mediaW && mediaH) {
+      const imgAR = mediaW / mediaH;
+      const canAR = canvasW / canvasH;
+      let sw, sh, sx, sy;
+      if (imgAR > canAR) { sh = mediaH; sw = sh * canAR; sy = 0; sx = (mediaW - sw) / 2; } 
+      else { sw = mediaW; sh = sw / canAR; sx = 0; sy = (mediaH - sh) / 2; }
+      ctx.drawImage(mediaElement, sx, sy, sw, sh, 0, 0, canvasW, canvasH);
+    }
+  } else {
+    ctx.fillStyle = '#1a1a2e'; ctx.fillRect(0, 0, canvasW, canvasH);
+  }
+
+  // Gradients
+  const gradH = canvasH * 0.55;
+  const grad = ctx.createLinearGradient(0, canvasH - gradH, 0, canvasH);
+  grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(0.3, 'rgba(0,0,0,0.55)'); grad.addColorStop(1, 'rgba(0,0,0,0.92)');
+  ctx.fillStyle = grad; ctx.fillRect(0, canvasH - gradH, canvasW, gradH);
+
+  const topGrad = ctx.createLinearGradient(0, 0, 0, canvasH * 0.35);
+  topGrad.addColorStop(0, 'rgba(0,0,0,0.55)'); topGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = topGrad; ctx.fillRect(0, 0, canvasW, canvasH * 0.35);
+
+  const fs = canvasW / 1080;
+  const pad = canvasW * 0.055;
+
+  // Logo (Playfair)
+  const logoFS = 90 * fs;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.7)'; ctx.shadowBlur = 12 * fs; ctx.shadowOffsetX = 3 * fs; ctx.shadowOffsetY = 3 * fs;
+  ctx.font = `900 ${logoFS}px 'Playfair Display', serif`;
+  ctx.fillStyle = '#ffffff'; ctx.textBaseline = 'top';
+  ctx.fillText("FT", pad, pad * 0.85);
+  ctx.restore();
+
+  // Active Clip Data
+  const time = mediaType === 'video' ? (mediaElement.currentTime || 0) : parseFloat(document.getElementById('seekSlider').value || 0);
+  const clip = getActiveClip(time);
+
+  if (clip) {
+    // Tag
+    const tagFS = 28 * fs;
+    ctx.font = `700 ${tagFS}px Inter, sans-serif`;
+    const tagW = ctx.measureText(clip.tag.toUpperCase()).width + 36 * fs;
+    const tagH = tagFS + 22 * fs;
+    const tagX = canvasW - pad - tagW;
+    const tagY = pad * 0.9;
+    ctx.fillStyle = clip.color;
+    roundRect(ctx, tagX, tagY, tagW, tagH, 6 * fs);
+    ctx.fillStyle = '#ffffff'; ctx.textBaseline = 'middle';
+    ctx.fillText(clip.tag.toUpperCase(), tagX + 18 * fs, tagY + tagH / 2);
+
+    // Headline Area
+    const bottomAreaY = canvasH * (canvasH === 1920 ? 0.72 : 0.62);
+    const barW = 9 * fs; const barX = pad;
+    let textX = pad + barW + 20 * fs; let textW = canvasW - textX - pad;
+
+    const headFS = canvasW === 1200 ? 48 * fs : 62 * fs;
+    ctx.font = `800 ${headFS}px Inter, sans-serif`;
+    ctx.fillStyle = '#ffffff'; ctx.textBaseline = 'top';
+    const headLines = wrapText(ctx, clip.headline, textW);
+    let curY = bottomAreaY;
+    headLines.forEach(line => { ctx.fillText(line, textX, curY); curY += headFS * 1.2; });
+
+    ctx.fillStyle = '#1a365d'; ctx.fillRect(barX, bottomAreaY, barW, curY - bottomAreaY);
+    curY += 18 * fs;
+
+    // Desc
+    const descFS = 30 * fs;
+    ctx.font = `400 ${descFS}px Inter, sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.textBaseline = 'top';
+    const descLines = wrapText(ctx, clip.desc, textW);
+    descLines.forEach(line => { ctx.fillText(line, textX, curY); curY += descFS * 1.4; });
+  }
+
+  // Website
+  const website = document.getElementById('website').value.trim().toUpperCase();
+  const webFS = 24 * fs;
+  ctx.font = `600 ${webFS}px Inter, sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'center';
+  ctx.fillText(website, canvasW / 2, canvasH - pad * 0.8);
+  ctx.textAlign = 'left';
+}
+
+function wrapText(ctx, text, maxW) {
+  const words = text.split(' '); const lines = []; let cur = '';
+  words.forEach(w => {
+    const test = cur ? cur + ' ' + w : w;
+    if (ctx.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; } else { cur = test; }
+  });
+  if (cur) lines.push(cur); return lines;
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r); ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath(); ctx.fill();
+}
+
+// ── EXPORT ENGINE (VIDEO) ──
+function startExport() {
+  if (mediaType !== 'video' || !mediaElement) return alert("Please upload a video first to export as video.");
+  
+  isExporting = true;
+  document.getElementById('exportBtn').disabled = true;
+  document.getElementById('exportStatus').style.display = 'block';
+  
+  // Setup Stream
+  const canvasStream = canvas.captureStream(30); // 30 FPS video
+  const tracks = canvasStream.getVideoTracks();
+  
+  // Try to capture audio from video element if possible
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioCtx.createMediaElementSource(mediaElement);
+    const dest = audioCtx.createMediaStreamDestination();
+    source.connect(dest);
+    source.connect(audioCtx.destination); // hear it while exporting
+    const audioTracks = dest.stream.getAudioTracks();
+    if (audioTracks.length > 0) tracks.push(audioTracks[0]);
+  } catch(e) { console.log("Audio capture not supported or failed", e); }
+
+  const combinedStream = new MediaStream(tracks);
+  
+  // Set high bitrate for HD Quality Export (8 Mbps)
+  const options = { videoBitsPerSecond: 8000000 };
+  if (MediaRecorder.isTypeSupported('video/webm; codecs=vp9')) {
+    options.mimeType = 'video/webm; codecs=vp9';
+  } else if (MediaRecorder.isTypeSupported('video/webm')) {
+    options.mimeType = 'video/webm';
+  } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+    options.mimeType = 'video/mp4';
+  }
+
+  mediaRecorder = new MediaRecorder(combinedStream, options);
+  recordedChunks = [];
+
+  mediaRecorder.ondataavailable = e => { if(e.data.size > 0) recordedChunks.push(e.data); };
+  mediaRecorder.onstop = () => {
+    const ext = options.mimeType && options.mimeType.includes('mp4') ? 'mp4' : 'webm';
+    const blob = new Blob(recordedChunks, { type: options.mimeType || 'video/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none'; a.href = url; a.download = `FT_HD_Video_${Date.now()}.${ext}`;
+    document.body.appendChild(a); a.click();
+    
+    isExporting = false;
+    document.getElementById('exportBtn').disabled = false;
+    document.getElementById('exportStatus').style.display = 'none';
+    cancelAnimationFrame(animationFrameId);
+  };
+
+  // Start process
+  mediaElement.currentTime = 0;
+  mediaRecorder.start();
+  
+  // Hook into video playback to draw frames during export
+  mediaElement.play();
+  
+  // Create an aggressive render loop for export to catch every frame
+  function exportLoop() {
+    if (isExporting && !mediaElement.ended) {
+      drawFrame();
+      const progress = (mediaElement.currentTime / mediaElement.duration) * 100;
+      document.getElementById('exportStatus').innerText = `Exporting... ${progress.toFixed(0)}%`;
+      requestAnimationFrame(exportLoop);
+    } else if (mediaElement.ended) {
+      mediaRecorder.stop();
+    }
+  }
+  exportLoop();
+}
+
+function downloadImage() {
+  const link = document.createElement('a');
+  link.download = `FT_Post_${Date.now()}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+// Register Service Worker for PWA install support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(e => console.log('SW reg failed:', e));
+  });
+}
+
+// Init (Start in Image mode by default since no video is loaded)
+updateUIMode('image');
+renderClipsUI();
+drawFrame();
+</script>
+</body>
+</html>
