@@ -145,9 +145,11 @@
     <h2>1. Setup</h2>
     
     <div class="format-tabs">
-      <button class="format-tab active" onclick="setSize(this,1080,1080)">Square (1:1)</button>
-      <button class="format-tab" onclick="setSize(this,1080,1920)">Story (9:16)</button>
-      <button class="format-tab" onclick="setSize(this,1200,628)">Banner</button>
+      <button class="format-tab active" onclick="setSize(this,1080,1080)">Instagram Post (1:1)</button>
+      <button class="format-tab" onclick="setSize(this,1080,1920)">Instagram Story (9:16)</button>
+      <button class="format-tab" onclick="setSize(this,1200,630)">Facebook Post</button>
+      <button class="format-tab" onclick="setSize(this,1200,675)">Twitter Post</button>
+      <button class="format-tab" onclick="setSize(this,1200,628)">LinkedIn Banner</button>
     </div>
 
     <div class="field">
@@ -163,6 +165,7 @@
     <h2 id="timelineHeader">2. Timeline Overlays</h2>
     <div id="clipsContainer"></div>
     <button class="add-clip-btn" id="addClipBtn" onclick="addClip()">+ Add Text Clip</button>
+    <button class="add-clip-btn" id="addAtCurrentBtn" onclick="addClipAtCurrent()" style="display:none;">+ Add at Current Time</button>
 
     <button class="btn-primary" id="exportBtn" onclick="startExport()" style="display:none;">⬇ Export HD Video</button>
     <button class="btn-primary" id="downloadImgBtn" onclick="downloadImage()">📷 Download Image</button>
@@ -202,7 +205,7 @@ let recordedChunks = [];
 
 // Timeline State
 let clips = [
-  { id: Date.now(), start: 0, end: 10, tag: 'FIELD REPORTS', color: '#1a365d', headline: 'Northeast Elections 2026: Assam Votes', desc: 'Voting starts across 126 seats in Assam.' }
+  { id: Date.now(), start: 0, end: 3, tag: '', color: '#1a365d', headline: '', desc: '' }
 ];
 
 function setSize(btn, w, h) {
@@ -255,6 +258,7 @@ function updateUIMode(mode) {
   document.getElementById('playerControls').style.display = isVideo ? 'flex' : 'none';
   document.getElementById('exportBtn').style.display = isVideo ? 'block' : 'none';
   document.getElementById('addClipBtn').style.display = isVideo ? 'block' : 'none';
+  document.getElementById('addAtCurrentBtn').style.display = isVideo ? 'block' : 'none';
   document.getElementById('timelineHeader').innerText = isVideo ? '2. Timeline Overlays' : '2. Text Overlays';
   
   // Style Image Download button differently based on mode
@@ -342,12 +346,19 @@ function renderClipsUI() {
   });
 }
 
-function addClip() {
-  const lastEnd = clips.length > 0 ? Math.max(...clips.map(c => c.end)) : 0;
+function addClipAtCurrent() {
+  if (mediaType !== 'video') return;
+  const currentTime = mediaElement.currentTime;
+  const existing = clips.find(c => c.start <= currentTime && c.end >= currentTime);
+  if (existing) {
+    // Split or adjust
+    existing.end = currentTime;
+  }
   clips.push({
-    id: Date.now(), start: lastEnd, end: lastEnd + 5,
-    tag: 'NEW CLIP', color: '#1565c0', headline: 'New Headline', desc: 'Description here.'
+    id: Date.now(), start: currentTime, end: currentTime + 3,
+    tag: '', color: '#1565c0', headline: '', desc: ''
   });
+  clips.sort((a,b) => a.start - b.start);
   renderClipsUI();
   drawFrame();
 }
@@ -459,7 +470,7 @@ function drawFrame() {
     let curY = bottomAreaY;
     headLines.forEach(line => { ctx.fillText(line, textX, curY); curY += headFS * 1.2; });
 
-    ctx.fillStyle = '#1a365d'; ctx.fillRect(barX, bottomAreaY, barW, curY - bottomAreaY);
+    ctx.fillStyle = '#ff0000'; ctx.fillRect(barX, bottomAreaY, barW, curY - bottomAreaY);
     curY += 18 * fs;
 
     // Desc
@@ -467,7 +478,13 @@ function drawFrame() {
     ctx.font = `400 ${descFS}px Inter, sans-serif`;
     ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.textBaseline = 'top';
     const descLines = wrapText(ctx, clip.desc, textW);
-    descLines.forEach(line => { ctx.fillText(line, textX, curY); curY += descFS * 1.4; });
+    const maxDescY = canvasH - pad * 2; // Leave space for website
+    descLines.forEach(line => { 
+      if (curY + descFS <= maxDescY) {
+        ctx.fillText(line, textX, curY); 
+        curY += descFS * 1.4; 
+      }
+    });
   }
 
   // Website

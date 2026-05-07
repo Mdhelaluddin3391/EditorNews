@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ft-editor-v1';
+const CACHE_NAME = 'ft-editor-v2';
 const ASSETS = [
   './',
   './index.html',
