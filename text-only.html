@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ferox Times — Text-Only Post Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0a0f;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+
+  header { text-align: center; margin-bottom: 20px; }
+  header h1 {
+    font-size: 2rem; font-weight: 900; letter-spacing: 2px;
+    background: linear-gradient(135deg, #1a365d, #2b6cb0);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  .container {
+    display: flex; gap: 30px; align-items: flex-start;
+    width: 100%; max-width: 1200px; justify-content: center;
+  }
+
+  .form-panel {
+    background: #13131a; border: 1px solid #222; border-radius: 16px;
+    padding: 20px; width: 400px; flex-shrink: 0;
+  }
+
+  .field { margin-bottom: 15px; }
+  .field label { display: block; font-size: 0.8rem; color: #888; margin-bottom: 6px; }
+  .field input[type="text"], .field textarea {
+    width: 100%; background: #0a0a0f; border: 1px solid #2a2a3a; border-radius: 8px;
+    padding: 10px; color: #fff; font-family: 'Inter'; outline: none;
+  }
+
+  .btn-primary {
+    width: 100%; padding: 14px; background: linear-gradient(135deg, #1a365d, #0f223a);
+    border: none; border-radius: 10px; color: white; font-weight: 700; cursor: pointer;
+    font-size: 1rem; margin-top: 10px; transition: transform 0.2s;
+  }
+  .btn-primary:hover { transform: translateY(-2px); }
+
+  .preview-panel { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+  #textCanvas { border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); max-width: 100%; }
+
+  @media (max-width: 900px) {
+    .container { flex-direction: column; align-items: center; }
+    .form-panel { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>FT TEXT-ONLY EDITOR</h1>
+  <p>Ferox Times — Text Post Generator | <a href="index.html" style="color: #1a365d;">Video/Image Editor</a></p>
+</header>
+
+<div class="container">
+
+  <div class="form-panel">
+    <div class="field">
+      <label>Title</label>
+      <input type="text" id="title" placeholder="Enter news title" oninput="drawTextPost()">
+    </div>
+    <div class="field">
+      <label>Description</label>
+      <textarea rows="4" id="desc" placeholder="Enter description" oninput="drawTextPost()"></textarea>
+    </div>
+    <button class="btn-primary" onclick="downloadTextImage()">⬇ Download Text Post</button>
+  </div>
+
+  <div class="preview-panel">
+    <canvas id="textCanvas"></canvas>
+  </div>
+
+</div>
+
+<script>
+const canvas = document.getElementById('textCanvas');
+const ctx = canvas.getContext('2d');
+const canvasW = 1080, canvasH = 1080;
+const DISPLAY_MAX = 540;
+
+function drawTextPost() {
+  const scale = Math.min(DISPLAY_MAX / canvasW, DISPLAY_MAX / canvasH);
+  canvas.width = canvasW;
+  canvas.height = canvasH;
+  canvas.style.width = (canvasW * scale) + 'px';
+  canvas.style.height = (canvasH * scale) + 'px';
+
+  ctx.clearRect(0, 0, canvasW, canvasH);
+
+  // Background
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, canvasW, canvasH);
+
+  // Gradients
+  const gradH = canvasH * 0.55;
+  const grad = ctx.createLinearGradient(0, canvasH - gradH, 0, canvasH);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(0.3, 'rgba(0,0,0,0.55)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.92)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, canvasH - gradH, canvasW, gradH);
+
+  const topGrad = ctx.createLinearGradient(0, 0, 0, canvasH * 0.35);
+  topGrad.addColorStop(0, 'rgba(0,0,0,0.55)');
+  topGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = topGrad;
+  ctx.fillRect(0, 0, canvasW, canvasH * 0.35);
+
+  const fs = canvasW / 1080;
+  const pad = canvasW * 0.055;
+
+  // Logo
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.7)';
+  ctx.shadowBlur = 12 * fs;
+  ctx.shadowOffsetX = 3 * fs;
+  ctx.shadowOffsetY = 3 * fs;
+  ctx.font = `900 ${90 * fs}px 'Playfair Display', serif`;
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'top';
+  ctx.fillText("FT", pad, pad * 0.85);
+  ctx.restore();
+
+  // Title
+  const title = document.getElementById('title').value.trim();
+  if (title) {
+    const titleFS = 62 * fs;
+    ctx.font = `800 ${titleFS}px Inter, sans-serif`;
+    ctx.fillStyle = '#ffffff';
+    ctx.textBaseline = 'top';
+    const barW = 9 * fs; const barX = pad;
+    const textX = pad + barW + 20 * fs;
+    const textW = canvasW - textX - pad;
+    const titleLines = wrapText(ctx, title, textW);
+    let curY = canvasH * 0.4;
+    titleLines.forEach(line => {
+      ctx.fillText(line, textX, curY);
+      curY += titleFS * 1.2;
+    });
+
+    // Red bar
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(barX, canvasH * 0.4, barW, curY - canvasH * 0.4);
+  }
+
+  // Description
+  const desc = document.getElementById('desc').value.trim();
+  if (desc) {
+    const descFS = 30 * fs;
+    ctx.font = `400 ${descFS}px Inter, sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.textBaseline = 'top';
+    const barW = 9 * fs;
+    const textX = pad + barW + 20 * fs;
+    const textW = canvasW - textX - pad;
+    const descLines = wrapText(ctx, desc, textW);
+    let descY = title ? canvasH * 0.6 : canvasH * 0.4;
+    descLines.forEach(line => {
+      if (descY + descFS <= canvasH - pad) {
+        ctx.fillText(line, textX, descY);
+        descY += descFS * 1.4;
+      }
+    });
+  }
+
+  // Website
+  ctx.font = `600 ${24 * fs}px Inter, sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'center';
+  ctx.fillText('feroxtimes.com', canvasW / 2, canvasH - pad * 0.8);
+  ctx.textAlign = 'left';
+}
+
+function wrapText(ctx, text, maxW) {
+  const words = text.split(' ');
+  const lines = [];
+  let cur = '';
+  words.forEach(w => {
+    const test = cur ? cur + ' ' + w : w;
+    if (ctx.measureText(test).width > maxW && cur) {
+      lines.push(cur);
+      cur = w;
+    } else {
+      cur = test;
+    }
+  });
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+function downloadTextImage() {
+  const link = document.createElement('a');
+  link.download = `FT_Text_Post_${Date.now()}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+// Init
+drawTextPost();
+</script>
+</body>
+</html>

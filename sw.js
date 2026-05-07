@@ -1,7 +1,8 @@
-const CACHE_NAME = 'ft-editor-v2';
+const CACHE_NAME = 'ft-editor-v3';
 const ASSETS = [
   './',
   './index.html',
+  './text-only.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'

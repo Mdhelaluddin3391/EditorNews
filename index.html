@@ -135,7 +135,7 @@
 
 <header>
   <h1>FT VIDEO EDITOR</h1>
-  <p>Ferox Times — Timeline-Based Social Post Generator</p>
+  <p>Ferox Times — Timeline-Based Social Post Generator | <a href="text-only.html" style="color: #1a365d;">Text-Only Editor</a></p>
 </header>
 
 <div class="main-layout">
@@ -145,7 +145,8 @@
     <h2>1. Setup</h2>
     
     <div class="format-tabs">
-      <button class="format-tab active" onclick="setSize(this,1080,1080)">Instagram Post (1:1)</button>
+      <button class="format-tab active" onclick="setSize(this,700,1000)">Primary (5:7)</button>
+      <button class="format-tab" onclick="setSize(this,1080,1080)">Instagram Post (1:1)</button>
       <button class="format-tab" onclick="setSize(this,1080,1920)">Instagram Story (9:16)</button>
       <button class="format-tab" onclick="setSize(this,1200,630)">Facebook Post</button>
       <button class="format-tab" onclick="setSize(this,1200,675)">Twitter Post</button>
@@ -189,7 +190,7 @@
 
 <script>
 // ── STATE ──
-let canvasW = 1080, canvasH = 1080;
+let canvasW = 700, canvasH = 1000;
 const DISPLAY_MAX = 540;
 
 const canvas = document.getElementById('previewCanvas');
@@ -459,11 +460,12 @@ function drawFrame() {
     ctx.fillText(clip.tag.toUpperCase(), tagX + 18 * fs, tagY + tagH / 2);
 
     // Headline Area
-    const bottomAreaY = canvasH * (canvasH === 1920 ? 0.72 : 0.62);
+    const hasDesc = clip.desc.trim().length > 0;
+    const bottomAreaY = hasDesc ? canvasH * 0.5 : canvasH * (canvasH === 1920 ? 0.72 : 0.62);
     const barW = 9 * fs; const barX = pad;
     let textX = pad + barW + 20 * fs; let textW = canvasW - textX - pad;
 
-    const headFS = canvasW === 1200 ? 48 * fs : 62 * fs;
+    const headFS = hasDesc ? (canvasW === 1200 ? 40 * fs : 50 * fs) : (canvasW === 1200 ? 48 * fs : 62 * fs);
     ctx.font = `800 ${headFS}px Inter, sans-serif`;
     ctx.fillStyle = '#ffffff'; ctx.textBaseline = 'top';
     const headLines = wrapText(ctx, clip.headline, textW);
@@ -478,7 +480,7 @@ function drawFrame() {
     ctx.font = `400 ${descFS}px Inter, sans-serif`;
     ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.textBaseline = 'top';
     const descLines = wrapText(ctx, clip.desc, textW);
-    const maxDescY = canvasH - pad * 2; // Leave space for website
+    const maxDescY = canvasH - pad; // Leave more space for website
     descLines.forEach(line => { 
       if (curY + descFS <= maxDescY) {
         ctx.fillText(line, textX, curY); 
@@ -488,7 +490,7 @@ function drawFrame() {
   }
 
   // Website
-  const website = document.getElementById('website').value.trim().toUpperCase();
+  const website = document.getElementById('website').value.trim().toLowerCase();
   const webFS = 24 * fs;
   ctx.font = `600 ${webFS}px Inter, sans-serif`;
   ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'center';
